@@ -19,52 +19,55 @@
             justify-content: center;
             align-items: center;
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            padding: 16px;
+            padding: 12px;
         }
 
         .game-container {
             text-align: center;
             width: 100%;
-            max-width: 600px;
+            max-width: 550px;
             background: #111;
-            border-radius: 48px;
-            padding: 20px 16px 30px;
+            border-radius: 40px;
+            padding: 16px 12px 24px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
         .video-wrapper {
             position: relative;
-            border-radius: 32px;
+            border-radius: 28px;
             overflow: hidden;
             background: #000;
             box-shadow: 0 0 0 3px #ff44cc;
+            aspect-ratio: 4 / 3;
         }
 
         video {
             width: 100%;
-            display: block;
+            height: 100%;
+            object-fit: cover;
             transform: scaleX(-1);
-            cursor: pointer;
+            display: block;
         }
 
         .stats {
-            margin-top: 20px;
             background: rgba(0,0,0,0.7);
-            border-radius: 40px;
-            padding: 15px;
+            border-radius: 32px;
+            padding: 12px;
             color: white;
             font-weight: bold;
         }
 
         .timer-box {
-            font-size: 3rem;
+            font-size: 2.2rem;
             font-family: monospace;
-            letter-spacing: 2px;
             background: #000000aa;
             display: inline-block;
-            padding: 8px 24px;
-            border-radius: 60px;
-            margin-bottom: 12px;
+            padding: 4px 20px;
+            border-radius: 50px;
+            margin-bottom: 8px;
         }
 
         #timer {
@@ -73,8 +76,8 @@
         }
 
         .record {
-            font-size: 1.2rem;
-            margin-bottom: 12px;
+            font-size: 1rem;
+            margin-bottom: 8px;
         }
 
         #recordValue {
@@ -85,31 +88,38 @@
         #status {
             background: #222;
             display: inline-block;
-            padding: 8px 20px;
-            border-radius: 40px;
-            font-size: 0.9rem;
-            margin: 12px 0;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            margin: 8px 0;
+            word-break: break-word;
         }
 
         button {
             background: #ff44cc;
             border: none;
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: bold;
-            padding: 12px 28px;
+            padding: 10px 20px;
             border-radius: 60px;
             color: white;
             cursor: pointer;
-            box-shadow: 0 6px 0 #992277;
+            box-shadow: 0 5px 0 #992277;
             transition: 0.07s linear;
             width: 80%;
-            max-width: 280px;
-            margin-top: 8px;
+            max-width: 240px;
+            margin: 4px auto;
         }
 
         button:active {
             transform: translateY(3px);
             box-shadow: 0 2px 0 #992277;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            transform: none;
+            cursor: not-allowed;
         }
 
         .countdown-overlay {
@@ -157,9 +167,17 @@
         }
 
         footer {
-            font-size: 0.7rem;
-            margin-top: 15px;
+            font-size: 0.65rem;
+            margin-top: 8px;
             color: #888;
+        }
+
+        .error-message {
+            color: #ff8888;
+            background: #440000;
+            padding: 6px;
+            border-radius: 20px;
+            font-size: 0.75rem;
         }
     </style>
 </head>
@@ -176,12 +194,11 @@
             🏆 Recorde: <span id="recordValue">0.00</span> s
         </div>
         <div id="status">📷 Aguardando câmera...</div>
-        <button id="startBtn">🔥 COMEÇAR</button>
+        <button id="startBtn" disabled>🔥 COMEÇAR</button>
     </div>
     <footer>Não pisque! Vai ter susto, flash e vibração 😈</footer>
 </div>
 
-<!-- Overlays para efeitos -->
 <div id="flashOverlay" class="flash-overlay"></div>
 <div id="invertOverlay" class="invert-overlay"></div>
 
@@ -200,7 +217,7 @@
 
     // ---------- ESTADO DO JOGO ----------
     let gameActive = false;
-    let gameRunning = false;     // se true, está contando tempo e detectando piscadas
+    let gameRunning = false;
     let startTime = 0;
     let currentTime = 0;
     let animFrame = null;
@@ -210,22 +227,18 @@
     let record = localStorage.getItem('noBlinkRecord') || 0;
     recordSpan.innerText = record.toFixed(2);
 
-    // ---------- MODELO DE IA ----------
     let model = null;
+    let modelLoadError = false;
+    let modelLoadTimeout = null;
 
     // ---------- ATIRAPALHOS ----------
     let disturbanceInterval = null;
-    let lastDisturbTime = 0;
-
-    // sons (criados sob demanda, pois precisa de interação)
     let audioCtx = null;
     let beepSound = null;
 
-    // ---------- FUNÇÕES DE ÁUDIO (som de alarme curto) ----------
     function initAudio() {
         if (audioCtx) return;
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        // Cria um beep agudo estilo "alarme"
         beepSound = () => {
             if (!audioCtx) return;
             const now = audioCtx.currentTime;
@@ -242,8 +255,7 @@
     }
 
     function playSound() {
-        if (!audioCtx) return;
-        // retomar se estiver suspenso
+        if (!audioCtx || modelLoadError) return;
         if (audioCtx.state === 'suspended') {
             audioCtx.resume().then(() => beepSound && beepSound());
         } else {
@@ -251,7 +263,7 @@
         }
     }
 
-    // ---------- ATIRAPALHOS ALEATÓRIOS ----------
+    // ---------- ATIRAPALHOS ----------
     function triggerFlash() {
         flashOverlay.style.opacity = '1';
         setTimeout(() => { flashOverlay.style.opacity = '0'; }, 100);
@@ -263,42 +275,27 @@
     }
 
     function triggerVibrate() {
-        if (navigator.vibrate) {
-            navigator.vibrate(200);
-        }
+        if (navigator.vibrate) navigator.vibrate(200);
     }
 
     function randomDisturbance() {
-        if (!gameRunning) return;   // só atrapalha se o jogo estiver ativo
+        if (!gameRunning) return;
         const rand = Math.random();
-        if (rand < 0.25) {
-            triggerFlash();
-        } else if (rand < 0.5) {
-            triggerInvert();
-        } else if (rand < 0.75) {
-            triggerVibrate();
-        } else {
-            // Som
-            playSound();
-        }
+        if (rand < 0.25) triggerFlash();
+        else if (rand < 0.5) triggerInvert();
+        else if (rand < 0.75) triggerVibrate();
+        else playSound();
     }
 
     function startDisturbances() {
         if (disturbanceInterval) clearInterval(disturbanceInterval);
         disturbanceInterval = setInterval(() => {
-            if (!gameRunning) return;
-            // Chance de 40% a cada 2.5 segundos de acontecer ALGUM atrapalho
-            if (Math.random() < 0.4) {
-                randomDisturbance();
-            }
+            if (gameRunning && Math.random() < 0.4) randomDisturbance();
         }, 2500);
     }
 
     function stopDisturbances() {
-        if (disturbanceInterval) {
-            clearInterval(disturbanceInterval);
-            disturbanceInterval = null;
-        }
+        if (disturbanceInterval) { clearInterval(disturbanceInterval); disturbanceInterval = null; }
     }
 
     // ---------- CÂMERA E MODELO ----------
@@ -307,13 +304,37 @@
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
             video.srcObject = stream;
             await video.play();
-            statusSpan.innerText = "📷 Câmera OK. Carregando IA...";
-            await loadModel();
+            statusSpan.innerText = "📷 Câmera OK. Carregando IA (pode levar até 15s)...";
+            startLoadModelWithTimeout();
         } catch (err) {
             console.error(err);
-            statusSpan.innerText = "❌ Sem permissão da câmera. Recarregue e permita.";
+            statusSpan.innerHTML = "❌ Sem permissão da câmera. Recarregue e permita.";
             startBtn.disabled = true;
         }
+    }
+
+    function startLoadModelWithTimeout() {
+        modelLoadTimeout = setTimeout(() => {
+            if (!model && !modelLoadError) {
+                modelLoadError = true;
+                statusSpan.innerHTML = "⚠️ Falha ao carregar IA (rede lenta?). O jogo não vai detectar piscadas. Recarregue a página e tente novamente.";
+                startBtn.disabled = true;
+                // Opcional: recarregar botão?
+                const reloadBtn = document.createElement('button');
+                reloadBtn.innerText = "🔄 RECARREGAR PÁGINA";
+                reloadBtn.style.background = "#ffaa44";
+                reloadBtn.style.marginTop = "10px";
+                reloadBtn.onclick = () => location.reload();
+                statusSpan.parentElement.appendChild(reloadBtn);
+            }
+        }, 15000);
+
+        loadModel().catch(err => {
+            console.error(err);
+            modelLoadError = true;
+            statusSpan.innerHTML = "❌ Erro ao carregar IA. Verifique sua internet e recarregue.";
+            startBtn.disabled = true;
+        });
     }
 
     async function loadModel() {
@@ -321,28 +342,23 @@
             faceLandmarksDetection.SupportedPackages.mediapipeFacemesh,
             { maxFaces: 1 }
         );
-        statusSpan.innerText = "🎮 Pronto! Clique em COMEÇAR e NÃO PISQUE!";
+        clearTimeout(modelLoadTimeout);
+        statusSpan.innerHTML = "🎮 Pronto! Clique em COMEÇAR e NÃO PISQUE!";
         startBtn.disabled = false;
         detectBlinkLoop();
     }
 
-    // EAR - Eye Aspect Ratio
     function calculateEAR(eyePoints) {
-        const p1 = eyePoints[1];
-        const p2 = eyePoints[2];
-        const p3 = eyePoints[3];
-        const p5 = eyePoints[5];
-        const p6 = eyePoints[6];
-        const p4 = eyePoints[4];
+        const p1 = eyePoints[1], p2 = eyePoints[2], p3 = eyePoints[3];
+        const p5 = eyePoints[5], p6 = eyePoints[6], p4 = eyePoints[4];
         const vertical1 = Math.hypot(p1.x - p5.x, p1.y - p5.y);
         const vertical2 = Math.hypot(p2.x - p6.x, p2.y - p6.y);
         const horizontal = Math.hypot(p3.x - p4.x, p3.y - p4.y);
         return (vertical1 + vertical2) / (2.0 * horizontal);
     }
 
-    // Loop de detecção de piscada
     async function detectBlinkLoop() {
-        if (!model) {
+        if (!model || modelLoadError) {
             requestAnimationFrame(detectBlinkLoop);
             return;
         }
@@ -358,17 +374,16 @@
                     const leftEAR = calculateEAR(leftEye);
                     const rightEAR = calculateEAR(rightEye);
                     const avgEAR = (leftEAR + rightEAR) / 2;
-                    if (avgEAR < 0.2) {  // piscou
+                    if (avgEAR < 0.2) {
                         blinkDetected = true;
                         endGame();
                     }
                 }
-            } catch(e) { /* ignora erros esporádicos */ }
+            } catch(e) { /* ignora */ }
         }
         requestAnimationFrame(detectBlinkLoop);
     }
 
-    // ---------- CRONOMETRO ----------
     function updateTimer() {
         if (!gameRunning) return;
         const now = performance.now();
@@ -377,7 +392,6 @@
         animFrame = requestAnimationFrame(updateTimer);
     }
 
-    // ---------- FIM DE JOGO ----------
     function endGame() {
         if (!gameRunning) return;
         gameRunning = false;
@@ -397,7 +411,6 @@
         startBtn.disabled = false;
     }
 
-    // ---------- CONTAGEM REGRESSIVA ----------
     function startCountdown() {
         if (gameActive) return;
         gameActive = true;
@@ -419,7 +432,6 @@
                 overlay.innerText = "VAI!";
                 setTimeout(() => {
                     overlay.remove();
-                    // INICIA O JOGO DE VERDADE
                     startGameReal();
                 }, 300);
                 clearInterval(interval);
@@ -443,35 +455,26 @@
         startBtn.disabled = true;
     }
 
-    // ---------- RESET E INÍCIO (chamado pelo botão) ----------
     function onStartClick() {
-        if (gameRunning) return;
-        if (countdownActive) return;
-        // Para qualquer estado anterior
-        if (gameActive) {
-            // Se já houve jogo, garantir que não tenha loop
-            gameRunning = false;
-            gameActive = false;
-            stopDisturbances();
-            if (animFrame) cancelAnimationFrame(animFrame);
+        if (gameRunning || countdownActive) return;
+        if (modelLoadError) {
+            statusSpan.innerHTML = "⚠️ IA não carregada. Recarregue a página.";
+            return;
         }
-        // Inicia áudio (se ainda não foi)
+        if (!model) {
+            statusSpan.innerHTML = "⏳ Aguarde a IA carregar...";
+            return;
+        }
         initAudio();
-        // Pequeno delay para ativar áudio no clique (resume)
-        if (audioCtx && audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
         startCountdown();
     }
 
     startBtn.onclick = onStartClick;
-
-    // ---------- INICIALIZAÇÃO ----------
     setupCamera();
 
-    // Pré-carrega áudio sem tocar ainda (só para ativar contexto)
+    // Ajustes de layout adicionais
     window.addEventListener('load', () => {
-        // Garante que o overlay de flash funcione
         flashOverlay.style.opacity = '0';
         invertOverlay.style.opacity = '0';
     });
