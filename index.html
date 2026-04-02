@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Não Pisca! - Modo Atrapalho</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: #0a0a2a;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            padding: 16px;
+        }
+
+        .game-container {
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+            background: #111;
+            border-radius: 48px;
+            padding: 20px 16px 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        .video-wrapper {
+            position: relative;
+            border-radius: 32px;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 0 0 3px #ff44cc;
+        }
+
+        video {
+            width: 100%;
+            display: block;
+            transform: scaleX(-1);
+            cursor: pointer;
+        }
+
+        .stats {
+            margin-top: 20px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 40px;
+            padding: 15px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .timer-box {
+            font-size: 3rem;
+            font-family: monospace;
+            letter-spacing: 2px;
+            background: #000000aa;
+            display: inline-block;
+            padding: 8px 24px;
+            border-radius: 60px;
+            margin-bottom: 12px;
+        }
+
+        #timer {
+            color: #ffaa44;
+            font-weight: 800;
+        }
+
+        .record {
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+        }
+
+        #recordValue {
+            color: #88ff88;
+            font-weight: bold;
+        }
+
+        #status {
+            background: #222;
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            margin: 12px 0;
+        }
+
+        button {
+            background: #ff44cc;
+            border: none;
+            font-size: 1.8rem;
+            font-weight: bold;
+            padding: 12px 28px;
+            border-radius: 60px;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #992277;
+            transition: 0.07s linear;
+            width: 80%;
+            max-width: 280px;
+            margin-top: 8px;
+        }
+
+        button:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #992277;
+        }
+
+        .countdown-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            font-size: 5rem;
+            font-weight: bold;
+            color: white;
+            backdrop-filter: blur(8px);
+            pointer-events: none;
+        }
+
+        .flash-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            z-index: 999;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.05s linear;
+        }
+
+        .invert-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            z-index: 998;
+            pointer-events: none;
+            mix-blend-mode: difference;
+            opacity: 0;
+        }
+
+        footer {
+            font-size: 0.7rem;
+            margin-top: 15px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <div class="video-wrapper">
+        <video id="webcam" autoplay playsinline muted></video>
+    </div>
+    <div class="stats">
+        <div class="timer-box">
+            ⏱️ <span id="timer">0.00</span> s
+        </div>
+        <div class="record">
+            🏆 Recorde: <span id="recordValue">0.00</span> s
+        </div>
+        <div id="status">📷 Aguardando câmera...</div>
+        <button id="startBtn">🔥 COMEÇAR</button>
+    </div>
+    <footer>Não pisque! Vai ter susto, flash e vibração 😈</footer>
+</div>
+
+<!-- Overlays para efeitos -->
+<div id="flashOverlay" class="flash-overlay"></div>
+<div id="invertOverlay" class="invert-overlay"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
+
+<script>
+    // ---------- ELEMENTOS ----------
+    const video = document.getElementById('webcam');
+    const startBtn = document.getElementById('startBtn');
+    const timerSpan = document.getElementById('timer');
+    const recordSpan = document.getElementById('recordValue');
+    const statusSpan = document.getElementById('status');
+    const flashOverlay = document.getElementById('flashOverlay');
+    const invertOverlay = document.getElementById('invertOverlay');
+
+    // ---------- ESTADO DO JOGO ----------
+    let gameActive = false;
+    let gameRunning = false;     // se true, está contando tempo e detectando piscadas
+    let startTime = 0;
+    let currentTime = 0;
+    let animFrame = null;
+    let blinkDetected = false;
+    let countdownActive = false;
+
+    let record = localStorage.getItem('noBlinkRecord') || 0;
+    recordSpan.innerText = record.toFixed(2);
+
+    // ---------- MODELO DE IA ----------
+    let model = null;
+
+    // ---------- ATIRAPALHOS ----------
+    let disturbanceInterval = null;
+    let lastDisturbTime = 0;
+
+    // sons (criados sob demanda, pois precisa de interação)
+    let audioCtx = null;
+    let beepSound = null;
+
+    // ---------- FUNÇÕES DE ÁUDIO (som de alarme curto) ----------
+    function initAudio() {
+        if (audioCtx) return;
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // Cria um beep agudo estilo "alarme"
+        beepSound = () => {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.value = 1800;
+            gain.gain.value = 0.3;
+            osc.start();
+            gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.3);
+            osc.stop(now + 0.25);
+        };
+    }
+
+    function playSound() {
+        if (!audioCtx) return;
+        // retomar se estiver suspenso
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume().then(() => beepSound && beepSound());
+        } else {
+            beepSound && beepSound();
+        }
+    }
+
+    // ---------- ATIRAPALHOS ALEATÓRIOS ----------
+    function triggerFlash() {
+        flashOverlay.style.opacity = '1';
+        setTimeout(() => { flashOverlay.style.opacity = '0'; }, 100);
+    }
+
+    function triggerInvert() {
+        invertOverlay.style.opacity = '1';
+        setTimeout(() => { invertOverlay.style.opacity = '0'; }, 500);
+    }
+
+    function triggerVibrate() {
+        if (navigator.vibrate) {
+            navigator.vibrate(200);
+        }
+    }
+
+    function randomDisturbance() {
+        if (!gameRunning) return;   // só atrapalha se o jogo estiver ativo
+        const rand = Math.random();
+        if (rand < 0.25) {
+            triggerFlash();
+        } else if (rand < 0.5) {
+            triggerInvert();
+        } else if (rand < 0.75) {
+            triggerVibrate();
+        } else {
+            // Som
+            playSound();
+        }
+    }
+
+    function startDisturbances() {
+        if (disturbanceInterval) clearInterval(disturbanceInterval);
+        disturbanceInterval = setInterval(() => {
+            if (!gameRunning) return;
+            // Chance de 40% a cada 2.5 segundos de acontecer ALGUM atrapalho
+            if (Math.random() < 0.4) {
+                randomDisturbance();
+            }
+        }, 2500);
+    }
+
+    function stopDisturbances() {
+        if (disturbanceInterval) {
+            clearInterval(disturbanceInterval);
+            disturbanceInterval = null;
+        }
+    }
+
+    // ---------- CÂMERA E MODELO ----------
+    async function setupCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            video.srcObject = stream;
+            await video.play();
+            statusSpan.innerText = "📷 Câmera OK. Carregando IA...";
+            await loadModel();
+        } catch (err) {
+            console.error(err);
+            statusSpan.innerText = "❌ Sem permissão da câmera. Recarregue e permita.";
+            startBtn.disabled = true;
+        }
+    }
+
+    async function loadModel() {
+        model = await faceLandmarksDetection.load(
+            faceLandmarksDetection.SupportedPackages.mediapipeFacemesh,
+            { maxFaces: 1 }
+        );
+        statusSpan.innerText = "🎮 Pronto! Clique em COMEÇAR e NÃO PISQUE!";
+        startBtn.disabled = false;
+        detectBlinkLoop();
+    }
+
+    // EAR - Eye Aspect Ratio
+    function calculateEAR(eyePoints) {
+        const p1 = eyePoints[1];
+        const p2 = eyePoints[2];
+        const p3 = eyePoints[3];
+        const p5 = eyePoints[5];
+        const p6 = eyePoints[6];
+        const p4 = eyePoints[4];
+        const vertical1 = Math.hypot(p1.x - p5.x, p1.y - p5.y);
+        const vertical2 = Math.hypot(p2.x - p6.x, p2.y - p6.y);
+        const horizontal = Math.hypot(p3.x - p4.x, p3.y - p4.y);
+        return (vertical1 + vertical2) / (2.0 * horizontal);
+    }
+
+    // Loop de detecção de piscada
+    async function detectBlinkLoop() {
+        if (!model) {
+            requestAnimationFrame(detectBlinkLoop);
+            return;
+        }
+        if (gameRunning && !blinkDetected) {
+            try {
+                const predictions = await model.estimateFaces({ input: video });
+                if (predictions.length > 0) {
+                    const face = predictions[0];
+                    const leftIdx = [33, 133, 155, 153, 144, 163];
+                    const rightIdx = [362, 263, 387, 385, 380, 373];
+                    const leftEye = leftIdx.map(i => face.annotations[i][0]);
+                    const rightEye = rightIdx.map(i => face.annotations[i][0]);
+                    const leftEAR = calculateEAR(leftEye);
+                    const rightEAR = calculateEAR(rightEye);
+                    const avgEAR = (leftEAR + rightEAR) / 2;
+                    if (avgEAR < 0.2) {  // piscou
+                        blinkDetected = true;
+                        endGame();
+                    }
+                }
+            } catch(e) { /* ignora erros esporádicos */ }
+        }
+        requestAnimationFrame(detectBlinkLoop);
+    }
+
+    // ---------- CRONOMETRO ----------
+    function updateTimer() {
+        if (!gameRunning) return;
+        const now = performance.now();
+        currentTime = (now - startTime) / 1000;
+        timerSpan.innerText = currentTime.toFixed(2);
+        animFrame = requestAnimationFrame(updateTimer);
+    }
+
+    // ---------- FIM DE JOGO ----------
+    function endGame() {
+        if (!gameRunning) return;
+        gameRunning = false;
+        gameActive = false;
+        stopDisturbances();
+        cancelAnimationFrame(animFrame);
+        const finalTime = currentTime;
+        if (finalTime > record) {
+            record = finalTime;
+            recordSpan.innerText = record.toFixed(2);
+            localStorage.setItem('noBlinkRecord', record);
+            statusSpan.innerHTML = `💀 PISCOU! ${finalTime.toFixed(2)}s. 🏆 NOVO RECORDE! 🏆`;
+        } else {
+            statusSpan.innerHTML = `😵 Piscou! Você durou ${finalTime.toFixed(2)}s. Recorde: ${record.toFixed(2)}s.`;
+        }
+        startBtn.innerText = "JOGAR NOVAMENTE";
+        startBtn.disabled = false;
+    }
+
+    // ---------- CONTAGEM REGRESSIVA ----------
+    function startCountdown() {
+        if (gameActive) return;
+        gameActive = true;
+        countdownActive = true;
+        startBtn.disabled = true;
+        statusSpan.innerText = "⏰ Prepare-se...";
+
+        let count = 3;
+        const overlay = document.createElement('div');
+        overlay.className = 'countdown-overlay';
+        overlay.innerText = count;
+        document.body.appendChild(overlay);
+
+        const interval = setInterval(() => {
+            count--;
+            if (count > 0) {
+                overlay.innerText = count;
+            } else if (count === 0) {
+                overlay.innerText = "VAI!";
+                setTimeout(() => {
+                    overlay.remove();
+                    // INICIA O JOGO DE VERDADE
+                    startGameReal();
+                }, 300);
+                clearInterval(interval);
+            } else {
+                clearInterval(interval);
+            }
+        }, 1000);
+    }
+
+    function startGameReal() {
+        countdownActive = false;
+        gameRunning = true;
+        blinkDetected = false;
+        startTime = performance.now();
+        currentTime = 0;
+        timerSpan.innerText = "0.00";
+        updateTimer();
+        startDisturbances();
+        statusSpan.innerHTML = "🔥 NÃO PISQUE!! Atrapalhos ativados 🔥";
+        startBtn.innerText = "JOGANDO...";
+        startBtn.disabled = true;
+    }
+
+    // ---------- RESET E INÍCIO (chamado pelo botão) ----------
+    function onStartClick() {
+        if (gameRunning) return;
+        if (countdownActive) return;
+        // Para qualquer estado anterior
+        if (gameActive) {
+            // Se já houve jogo, garantir que não tenha loop
+            gameRunning = false;
+            gameActive = false;
+            stopDisturbances();
+            if (animFrame) cancelAnimationFrame(animFrame);
+        }
+        // Inicia áudio (se ainda não foi)
+        initAudio();
+        // Pequeno delay para ativar áudio no clique (resume)
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        startCountdown();
+    }
+
+    startBtn.onclick = onStartClick;
+
+    // ---------- INICIALIZAÇÃO ----------
+    setupCamera();
+
+    // Pré-carrega áudio sem tocar ainda (só para ativar contexto)
+    window.addEventListener('load', () => {
+        // Garante que o overlay de flash funcione
+        flashOverlay.style.opacity = '0';
+        invertOverlay.style.opacity = '0';
+    });
+</script>
+</body>
+</html>
