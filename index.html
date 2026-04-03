@@ -5,13 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Don't Blink! / Não Pisca!</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body {
             background: #0a0a2a;
             min-height: 100vh;
@@ -21,7 +15,6 @@
             font-family: 'Segoe UI', system-ui, sans-serif;
             padding: 12px;
         }
-
         .game-container {
             text-align: center;
             width: 100%;
@@ -34,7 +27,6 @@
             flex-direction: column;
             gap: 12px;
         }
-
         .video-wrapper {
             position: relative;
             border-radius: 28px;
@@ -43,15 +35,7 @@
             box-shadow: 0 0 0 3px #ff44cc;
             aspect-ratio: 4 / 3;
         }
-
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1);
-            display: block;
-        }
-
+        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
         .stats {
             background: rgba(0,0,0,0.7);
             border-radius: 32px;
@@ -59,7 +43,6 @@
             color: white;
             font-weight: bold;
         }
-
         .timer-box {
             font-size: 2.2rem;
             font-family: monospace;
@@ -69,22 +52,9 @@
             border-radius: 50px;
             margin-bottom: 8px;
         }
-
-        #timer {
-            color: #ffaa44;
-            font-weight: 800;
-        }
-
-        .record {
-            font-size: 1rem;
-            margin-bottom: 8px;
-        }
-
-        #recordValue {
-            color: #88ff88;
-            font-weight: bold;
-        }
-
+        #timer { color: #ffaa44; font-weight: 800; }
+        .record { font-size: 1rem; margin-bottom: 8px; }
+        #recordValue { color: #88ff88; font-weight: bold; }
         #status {
             background: #222;
             display: inline-block;
@@ -94,7 +64,6 @@
             margin: 8px 0;
             word-break: break-word;
         }
-
         button {
             background: #ff44cc;
             border: none;
@@ -110,18 +79,8 @@
             max-width: 240px;
             margin: 4px auto;
         }
-
-        button:active {
-            transform: translateY(3px);
-            box-shadow: 0 2px 0 #992277;
-        }
-
-        button:disabled {
-            opacity: 0.6;
-            transform: none;
-            cursor: not-allowed;
-        }
-
+        button:active { transform: translateY(3px); box-shadow: 0 2px 0 #992277; }
+        button:disabled { opacity: 0.6; transform: none; cursor: not-allowed; }
         .countdown-overlay {
             position: fixed;
             top: 0;
@@ -139,7 +98,6 @@
             backdrop-filter: blur(8px);
             pointer-events: none;
         }
-
         .flash-overlay {
             position: fixed;
             top: 0;
@@ -152,7 +110,6 @@
             opacity: 0;
             transition: opacity 0.05s linear;
         }
-
         .invert-overlay {
             position: fixed;
             top: 0;
@@ -165,13 +122,7 @@
             mix-blend-mode: difference;
             opacity: 0;
         }
-
-        footer {
-            font-size: 0.65rem;
-            margin-top: 8px;
-            color: #888;
-        }
-
+        footer { font-size: 0.65rem; margin-top: 8px; color: #888; }
         .progress-bar {
             width: 80%;
             background-color: #333;
@@ -180,13 +131,7 @@
             overflow: hidden;
             height: 8px;
         }
-        .progress-fill {
-            display: block;
-            height: 100%;
-            width: 0%;
-            background-color: #ff44cc;
-            transition: width 0.3s ease;
-        }
+        .progress-fill { display: block; height: 100%; width: 0%; background-color: #ff44cc; transition: width 0.3s ease; }
         .lang-selector {
             position: absolute;
             top: 20px;
@@ -201,9 +146,7 @@
             font-weight: bold;
             z-index: 10;
         }
-        @media (max-width: 600px) {
-            .lang-selector { top: 10px; right: 10px; font-size: 0.7rem; padding: 4px 8px; }
-        }
+        @media (max-width: 600px) { .lang-selector { top: 10px; right: 10px; font-size: 0.7rem; padding: 4px 8px; } }
     </style>
 </head>
 <body>
@@ -228,18 +171,18 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@1.0.6"></script>
 
 <script>
-    // ---------- TRADUÇÕES ----------
+    // ---------- TRADUÇÕES (todas as mensagens) ----------
     const translations = {
         pt: {
             recordLabel: "Recorde:",
             footerText: "Não pisque! Atrapalhos ativados 😈",
             startBtn: "🔥 COMEÇAR",
-            startBtnDisabled: "🔥 COMEÇAR",
             cameraWaiting: "📷 Aguardando câmera...",
             cameraOk: "📷 Câmera OK. Carregando IA...",
             loadingIA: "Carregando IA...",
             iaSuccess: "✅ IA carregada com sucesso! Clique em COMEÇAR.",
-            iaError: "❌ Falha ao carregar IA. Recarregue a página.",
+            iaError: "❌ Falha ao carregar IA. Verifique sua internet e recarregue a página.",
+            iaErrorReload: "❌ Falha na IA. Clique para recarregar.",
             countdownPrepare: "⏰ Prepare-se...",
             gameActive: "🔥 NÃO PISQUE!! Atrapalhos ativados 🔥",
             gameOverBlink: (time, record) => `💀 PISCOU! ${time}s. 🏆 NOVO RECORDE! 🏆`,
@@ -247,18 +190,19 @@
             playAgain: "JOGAR NOVAMENTE",
             playing: "JOGANDO...",
             cameraError: "❌ Erro na câmera. Recarregue e permita.",
-            blinkDetected: "Piscou!"
+            blinkDetected: "Piscou!",
+            reloadButton: "🔄 RECARREGAR PÁGINA"
         },
         en: {
             recordLabel: "Record:",
             footerText: "Don't blink! Random distractions 😈",
             startBtn: "🔥 START",
-            startBtnDisabled: "🔥 START",
             cameraWaiting: "📷 Waiting for camera...",
             cameraOk: "📷 Camera OK. Loading AI...",
             loadingIA: "Loading AI...",
             iaSuccess: "✅ AI loaded successfully! Click START.",
-            iaError: "❌ Failed to load AI. Reload the page.",
+            iaError: "❌ Failed to load AI. Check your internet and reload the page.",
+            iaErrorReload: "❌ AI failed. Click to reload.",
             countdownPrepare: "⏰ Get ready...",
             gameActive: "🔥 DON'T BLINK!! Distractions active 🔥",
             gameOverBlink: (time, record) => `💀 BLINK! ${time}s. 🏆 NEW RECORD! 🏆`,
@@ -266,11 +210,12 @@
             playAgain: "PLAY AGAIN",
             playing: "PLAYING...",
             cameraError: "❌ Camera error. Reload and allow.",
-            blinkDetected: "Blinked!"
+            blinkDetected: "Blinked!",
+            reloadButton: "🔄 RELOAD PAGE"
         }
     };
 
-    let currentLang = 'pt'; // default
+    let currentLang = 'pt';
     function t(key, ...args) {
         let text = translations[currentLang][key];
         if (typeof text === 'function') return text(...args);
@@ -280,18 +225,12 @@
     function updateUITexts() {
         document.getElementById('recordLabel').innerText = t('recordLabel');
         document.getElementById('footerText').innerText = t('footerText');
-        if (!gameRunning && !countdownActive && !gameActive) {
+        if (!gameRunning && !countdownActive && !gameActive && !loadingInProgress) {
             startBtn.innerText = t('startBtn');
         } else if (gameRunning) {
             startBtn.innerText = t('playing');
-        } else if (countdownActive) {
-            // keep as is
-        } else {
+        } else if (!startBtn.disabled && !gameActive) {
             startBtn.innerText = t('startBtn');
-        }
-        // status message if not dynamic
-        if (statusSpan.innerText.includes('Aguardando') || statusSpan.innerText.includes('Waiting')) {
-            statusSpan.innerText = t('cameraWaiting');
         }
     }
 
@@ -314,12 +253,11 @@
     let animFrame = null;
     let blinkDetected = false;
     let countdownActive = false;
+    let loadingInProgress = false;
     let record = localStorage.getItem('noBlinkRecord') || 0;
     recordSpan.innerText = record.toFixed(2);
 
     let detector = null;
-    
-    // Atrapalhos
     let disturbanceInterval = null;
     let audioCtx = null;
     let beepSound = null;
@@ -349,17 +287,9 @@
     }
 
     // ---------- ATIRAPALHOS ----------
-    function triggerFlash() {
-        flashOverlay.style.opacity = '1';
-        setTimeout(() => flashOverlay.style.opacity = '0', 100);
-    }
-    function triggerInvert() {
-        invertOverlay.style.opacity = '1';
-        setTimeout(() => invertOverlay.style.opacity = '0', 500);
-    }
-    function triggerVibrate() {
-        if (navigator.vibrate) navigator.vibrate(200);
-    }
+    function triggerFlash() { flashOverlay.style.opacity = '1'; setTimeout(() => flashOverlay.style.opacity = '0', 100); }
+    function triggerInvert() { invertOverlay.style.opacity = '1'; setTimeout(() => invertOverlay.style.opacity = '0', 500); }
+    function triggerVibrate() { if (navigator.vibrate) navigator.vibrate(200); }
     function randomDisturbance() {
         if (!gameRunning) return;
         const rand = Math.random();
@@ -370,13 +300,9 @@
     }
     function startDisturbances() {
         if (disturbanceInterval) clearInterval(disturbanceInterval);
-        disturbanceInterval = setInterval(() => {
-            if (gameRunning && Math.random() < 0.4) randomDisturbance();
-        }, 2500);
+        disturbanceInterval = setInterval(() => { if (gameRunning && Math.random() < 0.4) randomDisturbance(); }, 2500);
     }
-    function stopDisturbances() {
-        if (disturbanceInterval) { clearInterval(disturbanceInterval); disturbanceInterval = null; }
-    }
+    function stopDisturbances() { if (disturbanceInterval) { clearInterval(disturbanceInterval); disturbanceInterval = null; } }
 
     // ---------- CÂMERA ----------
     async function setupCamera() {
@@ -385,82 +311,118 @@
             video.srcObject = stream;
             await video.play();
             statusSpan.innerText = t('cameraOk');
-            await loadModel();
+            await loadModelWithFallback();
         } catch (err) {
-            statusSpan.innerHTML = t('cameraError');
             console.error(err);
+            statusSpan.innerHTML = t('cameraError');
+            startBtn.disabled = true;
+            showReloadButton();
         }
     }
 
-    // ---------- CARREGAMENTO CORRETO DA IA ----------
-    async function loadModel() {
+    // ---------- CARREGAMENTO COM FALLBACK ----------
+    async function loadModelWithFallback() {
+        if (loadingInProgress) return;
+        loadingInProgress = true;
+        startBtn.disabled = true;
+        progressFill.style.width = '0%';
+        
+        // Tentativa 1: backend WASM + MediaPipe padrão
         try {
             await tf.setBackend('wasm');
             await tf.ready();
-            
-            const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
-            const detectorConfig = {
-                runtime: 'mediapipe',
-                solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh',
-                maxFaces: 1,
-                refineLandmarks: true
-            };
-            
-            let progress = 0;
-            const progressInterval = setInterval(() => {
-                if (progress < 90) {
-                    progress += 10;
-                    progressFill.style.width = progress + '%';
+            await loadMediaPipeDetector();
+        } catch (err) {
+            console.warn("WASM backend failed, trying webgl...", err);
+            statusSpan.innerHTML = "Tentando backend WebGL...";
+            try {
+                await tf.setBackend('webgl');
+                await tf.ready();
+                await loadMediaPipeDetector();
+            } catch (err2) {
+                console.warn("WebGL failed, trying cpu...", err2);
+                statusSpan.innerHTML = "Tentando backend CPU (mais lento)...";
+                try {
+                    await tf.setBackend('cpu');
+                    await tf.ready();
+                    await loadMediaPipeDetector();
+                } catch (err3) {
+                    console.error("All backends failed", err3);
+                    statusSpan.innerHTML = t('iaError');
+                    loadingInProgress = false;
+                    showReloadButton();
+                    return;
                 }
-            }, 200);
-            
-            detector = await faceLandmarksDetection.createDetector(model, detectorConfig);
-            
-            clearInterval(progressInterval);
-            progressFill.style.width = '100%';
-            setTimeout(() => {
-                progressFill.style.width = '0%';
-            }, 1000);
-            
-            statusSpan.innerHTML = t('iaSuccess');
-            startBtn.disabled = false;
-            startBtn.innerText = t('startBtn');
-            requestAnimationFrame(detectionLoop);
-            
-        } catch (error) {
-            console.error(error);
-            statusSpan.innerHTML = t('iaError');
-            startBtn.disabled = true;
+            }
         }
     }
 
-    // ---------- DETECÇÃO DE PISCADA ----------
+    async function loadMediaPipeDetector() {
+        // Simula progresso enquanto baixa os modelos
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            if (progress < 90) {
+                progress += 10;
+                progressFill.style.width = progress + '%';
+            }
+        }, 300);
+        
+        const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
+        const detectorConfig = {
+            runtime: 'mediapipe',
+            solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh',
+            maxFaces: 1,
+            refineLandmarks: true
+        };
+        
+        detector = await faceLandmarksDetection.createDetector(model, detectorConfig);
+        
+        clearInterval(progressInterval);
+        progressFill.style.width = '100%';
+        setTimeout(() => { progressFill.style.width = '0%'; }, 1000);
+        
+        statusSpan.innerHTML = t('iaSuccess');
+        startBtn.disabled = false;
+        startBtn.innerText = t('startBtn');
+        loadingInProgress = false;
+        
+        // Inicia loop de detecção
+        requestAnimationFrame(detectionLoop);
+    }
+
+    function showReloadButton() {
+        const btnReload = document.createElement('button');
+        btnReload.innerText = t('reloadButton');
+        btnReload.style.background = '#ffaa44';
+        btnReload.style.marginTop = '10px';
+        btnReload.style.fontSize = '1rem';
+        btnReload.onclick = () => location.reload();
+        statusSpan.parentElement.appendChild(btnReload);
+    }
+
+    // ---------- DETECÇÃO DE PISCADA (CORRIGIDA) ----------
     async function detectionLoop() {
         if (!detector || !gameRunning || blinkDetected) {
             requestAnimationFrame(detectionLoop);
             return;
         }
-        
         try {
             const faces = await detector.estimateFaces(video);
             if (faces.length > 0) {
                 const face = faces[0];
                 const leftEyeKeypoints = face.keypoints.filter(kp => kp.name === 'leftEye');
                 const rightEyeKeypoints = face.keypoints.filter(kp => kp.name === 'rightEye');
-                
                 if (leftEyeKeypoints.length > 0 && rightEyeKeypoints.length > 0) {
-                    const leftEyeOpen = calculateEyeOpenness(leftEyeKeypoints);
-                    const rightEyeOpen = calculateEyeOpenness(rightEyeKeypoints);
-                    const avgOpen = (leftEyeOpen + rightEyeOpen) / 2;
-                    
+                    const leftOpen = calculateEyeOpenness(leftEyeKeypoints);
+                    const rightOpen = calculateEyeOpenness(rightEyeKeypoints);
+                    const avgOpen = (leftOpen + rightOpen) / 2;
                     if (avgOpen < 0.2) {
                         blinkDetected = true;
                         endGame();
                     }
                 }
             }
-        } catch(e) {}
-        
+        } catch(e) { console.warn(e); }
         requestAnimationFrame(detectionLoop);
     }
 
@@ -472,12 +434,12 @@
         const sortedByX = [...keypoints].sort((a, b) => a.x - b.x);
         const leftPoint = sortedByX[0];
         const rightPoint = sortedByX[sortedByX.length - 1];
-        const verticalDistance = Math.hypot(topPoint.x - bottomPoint.x, topPoint.y - bottomPoint.y);
-        const horizontalDistance = Math.hypot(leftPoint.x - rightPoint.x, leftPoint.y - rightPoint.y);
-        return verticalDistance / horizontalDistance;
+        const vertical = Math.hypot(topPoint.x - bottomPoint.x, topPoint.y - bottomPoint.y);
+        const horizontal = Math.hypot(leftPoint.x - rightPoint.x, leftPoint.y - rightPoint.y);
+        return vertical / horizontal;
     }
 
-    // ---------- CRONOMETRO ----------
+    // ---------- CRONOMETRO E FIM DE JOGO ----------
     function updateTimer() {
         if (!gameRunning) return;
         const now = performance.now();
@@ -545,7 +507,11 @@
     }
 
     function onStartClick() {
-        if (gameRunning || countdownActive) return;
+        if (gameRunning || countdownActive || loadingInProgress) return;
+        if (!detector) {
+            statusSpan.innerHTML = t('iaError');
+            return;
+        }
         initAudio();
         if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
         startCountdown();
@@ -559,29 +525,22 @@
         invertOverlay.style.opacity = '0';
     });
 
-    // ---------- SELETOR DE IDIOMA ----------
+    // ---------- SELETOR DE IDIOMA (traduz também mensagens de erro dinâmicas) ----------
     langSelector.addEventListener('click', () => {
         currentLang = currentLang === 'pt' ? 'en' : 'pt';
         langSelector.innerText = currentLang === 'pt' ? '🌐 English' : '🌐 Português';
         updateUITexts();
-        // atualiza mensagens estáticas
-        if (!gameRunning && !countdownActive && !gameActive) {
-            if (statusSpan.innerHTML.includes('Aguardando') || statusSpan.innerHTML.includes('Waiting') || statusSpan.innerHTML.includes('carregada') || statusSpan.innerHTML.includes('loaded')) {
-                if (detector) statusSpan.innerHTML = t('iaSuccess');
-                else if (video.srcObject) statusSpan.innerHTML = t('cameraOk');
-                else statusSpan.innerHTML = t('cameraWaiting');
-            }
+        // Atualiza status se estiver em estado estático
+        if (!gameRunning && !countdownActive && !gameActive && !loadingInProgress) {
+            if (detector) statusSpan.innerHTML = t('iaSuccess');
+            else if (video.srcObject) statusSpan.innerHTML = t('cameraOk');
+            else statusSpan.innerHTML = t('cameraWaiting');
         } else if (gameRunning) {
             statusSpan.innerHTML = t('gameActive');
         } else if (countdownActive) {
             statusSpan.innerHTML = t('countdownPrepare');
         }
-        // atualiza botão se não estiver em jogo
-        if (!gameRunning && !countdownActive) {
-            startBtn.innerText = t('startBtn');
-        } else if (gameRunning) {
-            startBtn.innerText = t('playing');
-        }
+        // Se houver mensagem de erro fixa, não sobrescrever automaticamente, mas o usuário pode recarregar
     });
 </script>
 </body>
