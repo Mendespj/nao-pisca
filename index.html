@@ -5,167 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Não Pisque – Desafio</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-        }
-        body {
-            background: #0a0a2a;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            padding: 12px;
-        }
-        .game-container {
-            text-align: center;
-            width: 100%;
-            max-width: 550px;
-            background: #111;
-            border-radius: 40px;
-            padding: 16px 12px 24px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .video-wrapper {
-            position: relative;
-            border-radius: 28px;
-            overflow: hidden;
-            background: #000;
-            box-shadow: 0 0 0 3px #ff44cc;
-            aspect-ratio: 4 / 3;
-        }
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1);
-            display: block;
-        }
-        .stats {
-            background: rgba(0,0,0,0.7);
-            border-radius: 32px;
-            padding: 12px;
-            color: white;
-            font-weight: bold;
-        }
-        .timer-box {
-            font-size: 2.2rem;
-            font-family: monospace;
-            background: #000000aa;
-            display: inline-block;
-            padding: 4px 20px;
-            border-radius: 50px;
-            margin-bottom: 8px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        body { background: #0a0a2a; min-height: 100vh; display: flex; justify-content: center; align-items: center; font-family: 'Segoe UI', system-ui, sans-serif; padding: 12px; }
+        .game-container { text-align: center; width: 100%; max-width: 550px; background: #111; border-radius: 40px; padding: 16px 12px 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 12px; }
+        .video-wrapper { position: relative; border-radius: 28px; overflow: hidden; background: #000; box-shadow: 0 0 0 3px #ff44cc; aspect-ratio: 4 / 3; }
+        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+        .stats { background: rgba(0,0,0,0.7); border-radius: 32px; padding: 12px; color: white; font-weight: bold; }
+        .timer-box { font-size: 2.2rem; font-family: monospace; background: #000000aa; display: inline-block; padding: 4px 20px; border-radius: 50px; margin-bottom: 8px; }
         #timer { color: #ffaa44; font-weight: 800; }
         .record { font-size: 1rem; margin-bottom: 8px; }
         #recordValue { color: #88ff88; font-weight: bold; }
-        #status {
-            background: #222;
-            display: inline-block;
-            padding: 6px 16px;
-            border-radius: 30px;
-            font-size: 0.8rem;
-            margin: 8px 0;
-            word-break: break-word;
-        }
-        button {
-            background: #ff44cc;
-            border: none;
-            font-size: 1.5rem;
-            font-weight: bold;
-            padding: 10px 20px;
-            border-radius: 60px;
-            color: white;
-            cursor: pointer;
-            box-shadow: 0 5px 0 #992277;
-            transition: 0.07s linear;
-            width: 80%;
-            max-width: 240px;
-            margin: 4px auto;
-        }
+        #status { background: #222; display: inline-block; padding: 6px 16px; border-radius: 30px; font-size: 0.8rem; margin: 8px 0; word-break: break-word; }
+        button { background: #ff44cc; border: none; font-size: 1.5rem; font-weight: bold; padding: 10px 20px; border-radius: 60px; color: white; cursor: pointer; box-shadow: 0 5px 0 #992277; transition: 0.07s linear; width: 80%; max-width: 240px; margin: 4px auto; }
         button:active { transform: translateY(3px); box-shadow: 0 2px 0 #992277; }
         button:disabled { opacity: 0.6; transform: none; cursor: not-allowed; }
-        .countdown-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.85);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            font-size: 5rem;
-            font-weight: bold;
-            color: white;
-            backdrop-filter: blur(8px);
-            pointer-events: none;
-        }
-        .flash-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: white;
-            z-index: 999;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.05s linear;
-        }
-        .invert-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: transparent;
-            z-index: 998;
-            pointer-events: none;
-            mix-blend-mode: difference;
-            opacity: 0;
-        }
+        .countdown-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; font-size: 5rem; font-weight: bold; color: white; backdrop-filter: blur(8px); pointer-events: none; }
+        .flash-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 999; pointer-events: none; opacity: 0; transition: opacity 0.05s linear; }
+        .invert-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: transparent; z-index: 998; pointer-events: none; mix-blend-mode: difference; opacity: 0; }
         footer { font-size: 0.65rem; margin-top: 8px; color: #888; }
-        .progress-bar {
-            width: 80%;
-            background-color: #333;
-            border-radius: 25px;
-            margin: 10px auto;
-            overflow: hidden;
-            height: 8px;
-        }
-        .progress-fill {
-            display: block;
-            height: 100%;
-            width: 0%;
-            background-color: #ff44cc;
-            transition: width 0.2s ease;
-        }
-        .lang-selector {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: #222;
-            padding: 6px 12px;
-            border-radius: 30px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            border: 1px solid #ff44cc;
-            color: white;
-            font-weight: bold;
-            z-index: 10;
-        }
-        @media (max-width: 600px) {
-            .lang-selector { top: 10px; right: 10px; font-size: 0.7rem; padding: 4px 8px; }
-        }
+        .progress-bar { width: 80%; background-color: #333; border-radius: 25px; margin: 10px auto; overflow: hidden; height: 8px; }
+        .progress-fill { display: block; height: 100%; width: 0%; background-color: #ff44cc; transition: width 0.2s ease; }
+        .lang-selector { position: absolute; top: 20px; right: 20px; background: #222; padding: 6px 12px; border-radius: 30px; font-size: 0.8rem; cursor: pointer; border: 1px solid #ff44cc; color: white; font-weight: bold; z-index: 10; }
+        @media (max-width: 600px) { .lang-selector { top: 10px; right: 10px; font-size: 0.7rem; padding: 4px 8px; } }
     </style>
 </head>
 <body>
@@ -186,8 +47,7 @@
 <div id="flashOverlay" class="flash-overlay"></div>
 <div id="invertOverlay" class="invert-overlay"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@1.0.6"></script>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 
 <script>
     // ---------- TRADUÇÕES ----------
@@ -195,15 +55,15 @@
         pt: {
             recordLabel: "Recorde:", footerText: "Não pisque! Atrapalhos ativados 😈", startBtn: "🔥 COMEÇAR",
             cameraWaiting: "📷 Aguardando câmera...", cameraOk: "📷 Câmera OK. Carregando IA...", iaSuccess: "✅ IA carregada! Clique em COMEÇAR.",
-            iaError: "❌ Falha ao carregar IA. Verifique os arquivos em /models/facemesh/", countdownPrepare: "⏰ Prepare-se...",
-            gameActive: "🔥 NÃO PIQUE!! Atrapalhos ativados 🔥", gameOverBlink: (t, r) => `💀 PISCOU! ${t}s. 🏆 NOVO RECORDE! 🏆`,
+            iaError: "❌ Falha ao carregar IA. Verifique os arquivos em /models/face-api/", countdownPrepare: "⏰ Prepare-se...",
+            gameActive: "🔥 NÃO PISQUE!! Atrapalhos ativados 🔥", gameOverBlink: (t, r) => `💀 PISCOU! ${t}s. 🏆 NOVO RECORDE! 🏆`,
             gameOverNormal: (t, r) => `😵 Piscou! ${t}s. Recorde: ${r}s.`, playAgain: "JOGAR NOVAMENTE", playing: "JOGANDO...",
             cameraError: "❌ Erro na câmera. Recarregue e permita.", reloadButton: "🔄 RECARREGAR"
         },
         en: {
             recordLabel: "Record:", footerText: "Don't blink! Random distractions 😈", startBtn: "🔥 START",
             cameraWaiting: "📷 Waiting for camera...", cameraOk: "📷 Camera OK. Loading AI...", iaSuccess: "✅ AI loaded! Click START.",
-            iaError: "❌ Failed to load AI. Check /models/facemesh/ files", countdownPrepare: "⏰ Get ready...",
+            iaError: "❌ Failed to load AI. Check /models/face-api/ files", countdownPrepare: "⏰ Get ready...",
             gameActive: "🔥 DON'T BLINK!! Distractions active 🔥", gameOverBlink: (t, r) => `💀 BLINK! ${t}s. 🏆 NEW RECORD! 🏆`,
             gameOverNormal: (t, r) => `😵 You blinked! ${t}s. Record: ${r}s.`, playAgain: "PLAY AGAIN", playing: "PLAYING...",
             cameraError: "❌ Camera error. Reload and allow.", reloadButton: "🔄 RELOAD"
@@ -239,7 +99,8 @@
     let blinkDetected = false, countdownActive = false, loadingInProgress = false;
     let record = localStorage.getItem('noBlinkRecord') || 0;
     recordSpan.innerText = record.toFixed(2);
-    let detector = null, disturbanceInterval = null, audioCtx = null, beepSound = null;
+    let modelsLoaded = false;
+    let disturbanceInterval = null, audioCtx = null, beepSound = null;
 
     // ---------- ÁUDIO ----------
     function initAudio() {
@@ -283,14 +144,14 @@
     }
     function stopDisturbances() { if (disturbanceInterval) { clearInterval(disturbanceInterval); disturbanceInterval = null; } }
 
-    // ---------- CÂMERA E MODELO LOCAL ----------
+    // ---------- CÂMERA E CARREGAMENTO DOS MODELOS ----------
     async function setupCamera() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
             video.srcObject = stream;
             await video.play();
             statusSpan.innerText = t('cameraOk');
-            await loadModelFromLocal();
+            await loadModels();
         } catch (err) {
             console.error(err);
             statusSpan.innerHTML = t('cameraError');
@@ -309,93 +170,84 @@
         statusSpan.parentElement.appendChild(btnReload);
     }
 
-    async function loadModelFromLocal() {
-        if (loadingInProgress) return;
+    async function loadModels() {
         loadingInProgress = true;
         startBtn.disabled = true;
         progressFill.style.width = '0%';
 
         try {
-            // Força backend WebGL (mais rápido)
-            await tf.setBackend('webgl');
-            await tf.ready();
-            console.log("Backend TFJS:", tf.getBackend());
-
-            // Configuração para carregar modelo a partir dos arquivos locais
-            const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
-            const detectorConfig = {
-                runtime: 'mediapipe',
-                solutionPath: './models/facemesh',   // PASTA ONDE ESTÃO OS ARQUIVOS
-                maxFaces: 1,
-                refineLandmarks: true,
-                // Infelizmente não há callback de progresso oficial, mas vamos simular baseado no tempo
-            };
+            // Caminho para a pasta onde estão os 4 arquivos
+            const modelPath = './models/face-api/';
             
-            // Simulação de progresso enquanto aguarda o download real
-            let progress = 0;
-            const fakeInterval = setInterval(() => {
-                if (progress < 90) {
-                    progress += 5;
-                    progressFill.style.width = progress + '%';
+            // Simular progresso (face-api.js não tem callback nativo)
+            let fakeProgress = 0;
+            const interval = setInterval(() => {
+                if (fakeProgress < 90) {
+                    fakeProgress += 10;
+                    progressFill.style.width = fakeProgress + '%';
                 }
-            }, 150);
+            }, 200);
             
-            detector = await faceLandmarksDetection.createDetector(model, detectorConfig);
-            clearInterval(fakeInterval);
+            await faceapi.nets.tinyFaceDetector.loadFromUri(modelPath);
+            await faceapi.nets.faceLandmark68Net.loadFromUri(modelPath);
+            
+            clearInterval(interval);
             progressFill.style.width = '100%';
             setTimeout(() => progressFill.style.width = '0%', 800);
             
+            modelsLoaded = true;
             statusSpan.innerHTML = t('iaSuccess');
             startBtn.disabled = false;
             startBtn.innerText = t('startBtn');
             loadingInProgress = false;
             
-            // Inicia loop de detecção
+            // Iniciar loop de detecção
             requestAnimationFrame(detectionLoop);
-            
         } catch (err) {
-            console.error("Erro ao carregar modelo local:", err);
+            console.error("Erro ao carregar modelos face-api:", err);
             statusSpan.innerHTML = t('iaError');
             loadingInProgress = false;
             showReloadButton();
         }
     }
 
-    // ---------- DETECÇÃO DE PISCADA (EAR) ----------
+    // ---------- DETECÇÃO DE PISCADA COM FACE-API.JS ----------
     async function detectionLoop() {
-        if (!detector || !gameRunning || blinkDetected) {
+        if (!modelsLoaded || !gameRunning || blinkDetected) {
             requestAnimationFrame(detectionLoop);
             return;
         }
         try {
-            const faces = await detector.estimateFaces(video);
-            if (faces.length > 0) {
-                const face = faces[0];
-                const leftEye = face.keypoints.filter(kp => kp.name === 'leftEye');
-                const rightEye = face.keypoints.filter(kp => kp.name === 'rightEye');
-                if (leftEye.length > 0 && rightEye.length > 0) {
-                    const leftOpen = calculateEyeOpenness(leftEye);
-                    const rightOpen = calculateEyeOpenness(rightEye);
-                    const avgOpen = (leftOpen + rightOpen) / 2;
-                    if (avgOpen < 0.2) {   // piscou!
-                        blinkDetected = true;
-                        endGame();
-                    }
+            const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+                .withFaceLandmarks();
+            if (detections.length > 0) {
+                const landmarks = detections[0].landmarks;
+                // Índices dos olhos no modelo 68 pontos: olho esquerdo (36-41), olho direito (42-47)
+                const leftEye = landmarks.getLeftEye(); // array de 6 pontos
+                const rightEye = landmarks.getRightEye();
+                
+                // Calcular EAR (Eye Aspect Ratio)
+                const leftEAR = calculateEAR(leftEye);
+                const rightEAR = calculateEAR(rightEye);
+                const avgEAR = (leftEAR + rightEAR) / 2;
+                
+                if (avgEAR < 0.2) { // piscou
+                    blinkDetected = true;
+                    endGame();
                 }
             }
         } catch(e) { console.warn(e); }
         requestAnimationFrame(detectionLoop);
     }
 
-    function calculateEyeOpenness(keypoints) {
-        if (keypoints.length < 4) return 1;
-        const sortedByY = [...keypoints].sort((a, b) => a.y - b.y);
-        const top = sortedByY[0], bottom = sortedByY[sortedByY.length - 1];
-        const sortedByX = [...keypoints].sort((a, b) => a.x - b.x);
-        const left = sortedByX[0], right = sortedByX[sortedByX.length - 1];
-        const vertical = Math.hypot(top.x - bottom.x, top.y - bottom.y);
-        const horizontal = Math.hypot(left.x - right.x, left.y - right.y);
-        return vertical / horizontal;
+    function calculateEAR(eyePoints) {
+        // eyePoints: 6 pontos (p0, p1, p2, p3, p4, p5) no sentido horário
+        // Fórmula: (||p1-p5|| + ||p2-p4||) / (2 * ||p0-p3||)
+        const p0 = eyePoints[0], p1 = eyePoints[1], p2 = eyePoints[2], p3 = eyePoints[3], p4 = eyePoints[4], p5 = eyePoints[5];
+        const vertical1 = Math.hypot(p1.x - p5.x, p1.y - p5.y);
+        const vertical2 = Math.hypot(p2.x - p4.x, p2.y - p4.y);
+        const horizontal = Math.hypot(p0.x - p3.x, p0.y - p3.y);
+        return (vertical1 + vertical2) / (2.0 * horizontal);
     }
 
     // ---------- CRONOMETRO E FIM DE JOGO ----------
@@ -467,7 +319,7 @@
 
     function onStartClick() {
         if (gameRunning || countdownActive || loadingInProgress) return;
-        if (!detector) {
+        if (!modelsLoaded) {
             statusSpan.innerHTML = t('iaError');
             return;
         }
@@ -490,7 +342,7 @@
         langSelector.innerText = currentLang === 'pt' ? '🌐 English' : '🌐 Português';
         updateUITexts();
         if (!gameRunning && !countdownActive && !gameActive && !loadingInProgress) {
-            if (detector) statusSpan.innerHTML = t('iaSuccess');
+            if (modelsLoaded) statusSpan.innerHTML = t('iaSuccess');
             else if (video.srcObject) statusSpan.innerHTML = t('cameraOk');
             else statusSpan.innerHTML = t('cameraWaiting');
         } else if (gameRunning) statusSpan.innerHTML = t('gameActive');
