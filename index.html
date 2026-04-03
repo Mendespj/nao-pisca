@@ -3,9 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Don't Blink! / Não Pisca!</title>
+    <title>Não Pisque – Desafio</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
         body {
             background: #0a0a2a;
             min-height: 100vh;
@@ -35,7 +40,13 @@
             box-shadow: 0 0 0 3px #ff44cc;
             aspect-ratio: 4 / 3;
         }
-        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            display: block;
+        }
         .stats {
             background: rgba(0,0,0,0.7);
             border-radius: 32px;
@@ -131,7 +142,13 @@
             overflow: hidden;
             height: 8px;
         }
-        .progress-fill { display: block; height: 100%; width: 0%; background-color: #ff44cc; transition: width 0.3s ease; }
+        .progress-fill {
+            display: block;
+            height: 100%;
+            width: 0%;
+            background-color: #ff44cc;
+            transition: width 0.2s ease;
+        }
         .lang-selector {
             position: absolute;
             top: 20px;
@@ -146,7 +163,9 @@
             font-weight: bold;
             z-index: 10;
         }
-        @media (max-width: 600px) { .lang-selector { top: 10px; right: 10px; font-size: 0.7rem; padding: 4px 8px; } }
+        @media (max-width: 600px) {
+            .lang-selector { top: 10px; right: 10px; font-size: 0.7rem; padding: 4px 8px; }
+        }
     </style>
 </head>
 <body>
@@ -171,67 +190,37 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@1.0.6"></script>
 
 <script>
-    // ---------- TRADUÇÕES (todas as mensagens) ----------
+    // ---------- TRADUÇÕES ----------
     const translations = {
         pt: {
-            recordLabel: "Recorde:",
-            footerText: "Não pisque! Atrapalhos ativados 😈",
-            startBtn: "🔥 COMEÇAR",
-            cameraWaiting: "📷 Aguardando câmera...",
-            cameraOk: "📷 Câmera OK. Carregando IA...",
-            loadingIA: "Carregando IA...",
-            iaSuccess: "✅ IA carregada com sucesso! Clique em COMEÇAR.",
-            iaError: "❌ Falha ao carregar IA. Verifique sua internet e recarregue a página.",
-            iaErrorReload: "❌ Falha na IA. Clique para recarregar.",
-            countdownPrepare: "⏰ Prepare-se...",
-            gameActive: "🔥 NÃO PISQUE!! Atrapalhos ativados 🔥",
-            gameOverBlink: (time, record) => `💀 PISCOU! ${time}s. 🏆 NOVO RECORDE! 🏆`,
-            gameOverNormal: (time, record) => `😵 Piscou! ${time}s. Recorde: ${record}s.`,
-            playAgain: "JOGAR NOVAMENTE",
-            playing: "JOGANDO...",
-            cameraError: "❌ Erro na câmera. Recarregue e permita.",
-            blinkDetected: "Piscou!",
-            reloadButton: "🔄 RECARREGAR PÁGINA"
+            recordLabel: "Recorde:", footerText: "Não pisque! Atrapalhos ativados 😈", startBtn: "🔥 COMEÇAR",
+            cameraWaiting: "📷 Aguardando câmera...", cameraOk: "📷 Câmera OK. Carregando IA...", iaSuccess: "✅ IA carregada! Clique em COMEÇAR.",
+            iaError: "❌ Falha ao carregar IA. Verifique os arquivos em /models/facemesh/", countdownPrepare: "⏰ Prepare-se...",
+            gameActive: "🔥 NÃO PIQUE!! Atrapalhos ativados 🔥", gameOverBlink: (t, r) => `💀 PISCOU! ${t}s. 🏆 NOVO RECORDE! 🏆`,
+            gameOverNormal: (t, r) => `😵 Piscou! ${t}s. Recorde: ${r}s.`, playAgain: "JOGAR NOVAMENTE", playing: "JOGANDO...",
+            cameraError: "❌ Erro na câmera. Recarregue e permita.", reloadButton: "🔄 RECARREGAR"
         },
         en: {
-            recordLabel: "Record:",
-            footerText: "Don't blink! Random distractions 😈",
-            startBtn: "🔥 START",
-            cameraWaiting: "📷 Waiting for camera...",
-            cameraOk: "📷 Camera OK. Loading AI...",
-            loadingIA: "Loading AI...",
-            iaSuccess: "✅ AI loaded successfully! Click START.",
-            iaError: "❌ Failed to load AI. Check your internet and reload the page.",
-            iaErrorReload: "❌ AI failed. Click to reload.",
-            countdownPrepare: "⏰ Get ready...",
-            gameActive: "🔥 DON'T BLINK!! Distractions active 🔥",
-            gameOverBlink: (time, record) => `💀 BLINK! ${time}s. 🏆 NEW RECORD! 🏆`,
-            gameOverNormal: (time, record) => `😵 You blinked! ${time}s. Record: ${record}s.`,
-            playAgain: "PLAY AGAIN",
-            playing: "PLAYING...",
-            cameraError: "❌ Camera error. Reload and allow.",
-            blinkDetected: "Blinked!",
-            reloadButton: "🔄 RELOAD PAGE"
+            recordLabel: "Record:", footerText: "Don't blink! Random distractions 😈", startBtn: "🔥 START",
+            cameraWaiting: "📷 Waiting for camera...", cameraOk: "📷 Camera OK. Loading AI...", iaSuccess: "✅ AI loaded! Click START.",
+            iaError: "❌ Failed to load AI. Check /models/facemesh/ files", countdownPrepare: "⏰ Get ready...",
+            gameActive: "🔥 DON'T BLINK!! Distractions active 🔥", gameOverBlink: (t, r) => `💀 BLINK! ${t}s. 🏆 NEW RECORD! 🏆`,
+            gameOverNormal: (t, r) => `😵 You blinked! ${t}s. Record: ${r}s.`, playAgain: "PLAY AGAIN", playing: "PLAYING...",
+            cameraError: "❌ Camera error. Reload and allow.", reloadButton: "🔄 RELOAD"
         }
     };
-
     let currentLang = 'pt';
     function t(key, ...args) {
         let text = translations[currentLang][key];
         if (typeof text === 'function') return text(...args);
         return text || key;
     }
-
     function updateUITexts() {
         document.getElementById('recordLabel').innerText = t('recordLabel');
         document.getElementById('footerText').innerText = t('footerText');
-        if (!gameRunning && !countdownActive && !gameActive && !loadingInProgress) {
-            startBtn.innerText = t('startBtn');
-        } else if (gameRunning) {
-            startBtn.innerText = t('playing');
-        } else if (!startBtn.disabled && !gameActive) {
-            startBtn.innerText = t('startBtn');
-        }
+        if (!gameRunning && !countdownActive && !gameActive && !loadingInProgress) startBtn.innerText = t('startBtn');
+        else if (gameRunning) startBtn.innerText = t('playing');
+        else if (!startBtn.disabled && !gameActive) startBtn.innerText = t('startBtn');
     }
 
     // ---------- ELEMENTOS ----------
@@ -246,21 +235,11 @@
     const langSelector = document.getElementById('langSelector');
 
     // ---------- ESTADO DO JOGO ----------
-    let gameRunning = false;
-    let gameActive = false;
-    let startTime = 0;
-    let currentTime = 0;
-    let animFrame = null;
-    let blinkDetected = false;
-    let countdownActive = false;
-    let loadingInProgress = false;
+    let gameRunning = false, gameActive = false, startTime = 0, currentTime = 0, animFrame = null;
+    let blinkDetected = false, countdownActive = false, loadingInProgress = false;
     let record = localStorage.getItem('noBlinkRecord') || 0;
     recordSpan.innerText = record.toFixed(2);
-
-    let detector = null;
-    let disturbanceInterval = null;
-    let audioCtx = null;
-    let beepSound = null;
+    let detector = null, disturbanceInterval = null, audioCtx = null, beepSound = null;
 
     // ---------- ÁUDIO ----------
     function initAudio() {
@@ -304,90 +283,20 @@
     }
     function stopDisturbances() { if (disturbanceInterval) { clearInterval(disturbanceInterval); disturbanceInterval = null; } }
 
-    // ---------- CÂMERA ----------
+    // ---------- CÂMERA E MODELO LOCAL ----------
     async function setupCamera() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
             video.srcObject = stream;
             await video.play();
             statusSpan.innerText = t('cameraOk');
-            await loadModelWithFallback();
+            await loadModelFromLocal();
         } catch (err) {
             console.error(err);
             statusSpan.innerHTML = t('cameraError');
             startBtn.disabled = true;
             showReloadButton();
         }
-    }
-
-    // ---------- CARREGAMENTO COM FALLBACK ----------
-    async function loadModelWithFallback() {
-        if (loadingInProgress) return;
-        loadingInProgress = true;
-        startBtn.disabled = true;
-        progressFill.style.width = '0%';
-        
-        // Tentativa 1: backend WASM + MediaPipe padrão
-        try {
-            await tf.setBackend('wasm');
-            await tf.ready();
-            await loadMediaPipeDetector();
-        } catch (err) {
-            console.warn("WASM backend failed, trying webgl...", err);
-            statusSpan.innerHTML = "Tentando backend WebGL...";
-            try {
-                await tf.setBackend('webgl');
-                await tf.ready();
-                await loadMediaPipeDetector();
-            } catch (err2) {
-                console.warn("WebGL failed, trying cpu...", err2);
-                statusSpan.innerHTML = "Tentando backend CPU (mais lento)...";
-                try {
-                    await tf.setBackend('cpu');
-                    await tf.ready();
-                    await loadMediaPipeDetector();
-                } catch (err3) {
-                    console.error("All backends failed", err3);
-                    statusSpan.innerHTML = t('iaError');
-                    loadingInProgress = false;
-                    showReloadButton();
-                    return;
-                }
-            }
-        }
-    }
-
-    async function loadMediaPipeDetector() {
-        // Simula progresso enquanto baixa os modelos
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-            if (progress < 90) {
-                progress += 10;
-                progressFill.style.width = progress + '%';
-            }
-        }, 300);
-        
-        const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
-        const detectorConfig = {
-            runtime: 'mediapipe',
-            solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh',
-            maxFaces: 1,
-            refineLandmarks: true
-        };
-        
-        detector = await faceLandmarksDetection.createDetector(model, detectorConfig);
-        
-        clearInterval(progressInterval);
-        progressFill.style.width = '100%';
-        setTimeout(() => { progressFill.style.width = '0%'; }, 1000);
-        
-        statusSpan.innerHTML = t('iaSuccess');
-        startBtn.disabled = false;
-        startBtn.innerText = t('startBtn');
-        loadingInProgress = false;
-        
-        // Inicia loop de detecção
-        requestAnimationFrame(detectionLoop);
     }
 
     function showReloadButton() {
@@ -400,7 +309,59 @@
         statusSpan.parentElement.appendChild(btnReload);
     }
 
-    // ---------- DETECÇÃO DE PISCADA (CORRIGIDA) ----------
+    async function loadModelFromLocal() {
+        if (loadingInProgress) return;
+        loadingInProgress = true;
+        startBtn.disabled = true;
+        progressFill.style.width = '0%';
+
+        try {
+            // Força backend WebGL (mais rápido)
+            await tf.setBackend('webgl');
+            await tf.ready();
+            console.log("Backend TFJS:", tf.getBackend());
+
+            // Configuração para carregar modelo a partir dos arquivos locais
+            const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
+            const detectorConfig = {
+                runtime: 'mediapipe',
+                solutionPath: './models/facemesh',   // PASTA ONDE ESTÃO OS ARQUIVOS
+                maxFaces: 1,
+                refineLandmarks: true,
+                // Infelizmente não há callback de progresso oficial, mas vamos simular baseado no tempo
+            };
+            
+            // Simulação de progresso enquanto aguarda o download real
+            let progress = 0;
+            const fakeInterval = setInterval(() => {
+                if (progress < 90) {
+                    progress += 5;
+                    progressFill.style.width = progress + '%';
+                }
+            }, 150);
+            
+            detector = await faceLandmarksDetection.createDetector(model, detectorConfig);
+            clearInterval(fakeInterval);
+            progressFill.style.width = '100%';
+            setTimeout(() => progressFill.style.width = '0%', 800);
+            
+            statusSpan.innerHTML = t('iaSuccess');
+            startBtn.disabled = false;
+            startBtn.innerText = t('startBtn');
+            loadingInProgress = false;
+            
+            // Inicia loop de detecção
+            requestAnimationFrame(detectionLoop);
+            
+        } catch (err) {
+            console.error("Erro ao carregar modelo local:", err);
+            statusSpan.innerHTML = t('iaError');
+            loadingInProgress = false;
+            showReloadButton();
+        }
+    }
+
+    // ---------- DETECÇÃO DE PISCADA (EAR) ----------
     async function detectionLoop() {
         if (!detector || !gameRunning || blinkDetected) {
             requestAnimationFrame(detectionLoop);
@@ -410,13 +371,13 @@
             const faces = await detector.estimateFaces(video);
             if (faces.length > 0) {
                 const face = faces[0];
-                const leftEyeKeypoints = face.keypoints.filter(kp => kp.name === 'leftEye');
-                const rightEyeKeypoints = face.keypoints.filter(kp => kp.name === 'rightEye');
-                if (leftEyeKeypoints.length > 0 && rightEyeKeypoints.length > 0) {
-                    const leftOpen = calculateEyeOpenness(leftEyeKeypoints);
-                    const rightOpen = calculateEyeOpenness(rightEyeKeypoints);
+                const leftEye = face.keypoints.filter(kp => kp.name === 'leftEye');
+                const rightEye = face.keypoints.filter(kp => kp.name === 'rightEye');
+                if (leftEye.length > 0 && rightEye.length > 0) {
+                    const leftOpen = calculateEyeOpenness(leftEye);
+                    const rightOpen = calculateEyeOpenness(rightEye);
                     const avgOpen = (leftOpen + rightOpen) / 2;
-                    if (avgOpen < 0.2) {
+                    if (avgOpen < 0.2) {   // piscou!
                         blinkDetected = true;
                         endGame();
                     }
@@ -429,13 +390,11 @@
     function calculateEyeOpenness(keypoints) {
         if (keypoints.length < 4) return 1;
         const sortedByY = [...keypoints].sort((a, b) => a.y - b.y);
-        const topPoint = sortedByY[0];
-        const bottomPoint = sortedByY[sortedByY.length - 1];
+        const top = sortedByY[0], bottom = sortedByY[sortedByY.length - 1];
         const sortedByX = [...keypoints].sort((a, b) => a.x - b.x);
-        const leftPoint = sortedByX[0];
-        const rightPoint = sortedByX[sortedByX.length - 1];
-        const vertical = Math.hypot(topPoint.x - bottomPoint.x, topPoint.y - bottomPoint.y);
-        const horizontal = Math.hypot(leftPoint.x - rightPoint.x, leftPoint.y - rightPoint.y);
+        const left = sortedByX[0], right = sortedByX[sortedByX.length - 1];
+        const vertical = Math.hypot(top.x - bottom.x, top.y - bottom.y);
+        const horizontal = Math.hypot(left.x - right.x, left.y - right.y);
         return vertical / horizontal;
     }
 
@@ -525,22 +484,17 @@
         invertOverlay.style.opacity = '0';
     });
 
-    // ---------- SELETOR DE IDIOMA (traduz também mensagens de erro dinâmicas) ----------
+    // SELETOR DE IDIOMA
     langSelector.addEventListener('click', () => {
         currentLang = currentLang === 'pt' ? 'en' : 'pt';
         langSelector.innerText = currentLang === 'pt' ? '🌐 English' : '🌐 Português';
         updateUITexts();
-        // Atualiza status se estiver em estado estático
         if (!gameRunning && !countdownActive && !gameActive && !loadingInProgress) {
             if (detector) statusSpan.innerHTML = t('iaSuccess');
             else if (video.srcObject) statusSpan.innerHTML = t('cameraOk');
             else statusSpan.innerHTML = t('cameraWaiting');
-        } else if (gameRunning) {
-            statusSpan.innerHTML = t('gameActive');
-        } else if (countdownActive) {
-            statusSpan.innerHTML = t('countdownPrepare');
-        }
-        // Se houver mensagem de erro fixa, não sobrescrever automaticamente, mas o usuário pode recarregar
+        } else if (gameRunning) statusSpan.innerHTML = t('gameActive');
+        else if (countdownActive) statusSpan.innerHTML = t('countdownPrepare');
     });
 </script>
 </body>
