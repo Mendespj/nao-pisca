@@ -27,6 +27,7 @@
         .progress-fill { display: block; height: 100%; width: 0%; background-color: #ff44cc; transition: width 0.2s ease; }
         .lang-selector { position: absolute; top: 20px; right: 20px; background: #222; padding: 6px 12px; border-radius: 30px; font-size: 0.8rem; cursor: pointer; border: 1px solid #ff44cc; color: white; font-weight: bold; z-index: 10; }
         @media (max-width: 600px) { .lang-selector { top: 10px; right: 10px; font-size: 0.7rem; padding: 4px 8px; } }
+        .warning { background: #ff6600; color: #000; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; display: inline-block; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -41,6 +42,7 @@
         <div id="status">📷 Aguardando câmera...</div>
         <div class="progress-bar"><div id="loadProgress" class="progress-fill"></div></div>
         <button id="startBtn" disabled>🔥 COMEÇAR</button>
+        <div id="faceWarning" style="display: none;" class="warning">⚠️ Rosto não detectado. Ilumine o ambiente!</div>
     </div>
     <footer>⚠️ <span id="footerText">Não pisque! Atrapalhos ativados 😈</span></footer>
 </div>
@@ -58,7 +60,8 @@
             iaError: "❌ Falha ao carregar IA. Verifique os arquivos em /models/face-api/", countdownPrepare: "⏰ Prepare-se...",
             gameActive: "🔥 NÃO PISQUE!! Atrapalhos ativados 🔥", gameOverBlink: (t, r) => `💀 PISCOU! ${t}s. 🏆 NOVO RECORDE! 🏆`,
             gameOverNormal: (t, r) => `😵 Piscou! ${t}s. Recorde: ${r}s.`, playAgain: "JOGAR NOVAMENTE", playing: "JOGANDO...",
-            cameraError: "❌ Erro na câmera. Recarregue e permita.", reloadButton: "🔄 RECARREGAR"
+            cameraError: "❌ Erro na câmera. Recarregue e permita.", reloadButton: "🔄 RECARREGAR",
+            noFaceWarning: "⚠️ Rosto não detectado. Ilumine o ambiente!", faceLost: "😞 Rosto perdido! Jogo reiniciado."
         },
         en: {
             recordLabel: "Record:", footerText: "Don't blink! Random distractions 😈", startBtn: "🔥 START",
@@ -66,7 +69,8 @@
             iaError: "❌ Failed to load AI. Check /models/face-api/ files", countdownPrepare: "⏰ Get ready...",
             gameActive: "🔥 DON'T BLINK!! Distractions active 🔥", gameOverBlink: (t, r) => `💀 BLINK! ${t}s. 🏆 NEW RECORD! 🏆`,
             gameOverNormal: (t, r) => `😵 You blinked! ${t}s. Record: ${r}s.`, playAgain: "PLAY AGAIN", playing: "PLAYING...",
-            cameraError: "❌ Camera error. Reload and allow.", reloadButton: "🔄 RELOAD"
+            cameraError: "❌ Camera error. Reload and allow.", reloadButton: "🔄 RELOAD",
+            noFaceWarning: "⚠️ Face not detected. Improve lighting!", faceLost: "😞 Face lost! Game reset."
         }
     };
     let currentLang = 'pt';
@@ -93,6 +97,7 @@
     const invertOverlay = document.getElementById('invertOverlay');
     const progressFill = document.getElementById('loadProgress');
     const langSelector = document.getElementById('langSelector');
+    const faceWarning = document.getElementById('faceWarning');
 
     // ---------- ESTADO DO JOGO ----------
     let gameRunning = false, gameActive = false, startTime = 0, currentTime = 0, animFrame = null;
@@ -101,6 +106,8 @@
     recordSpan.innerText = record.toFixed(2);
     let modelsLoaded = false;
     let disturbanceInterval = null, audioCtx = null, beepSound = null;
+    let faceDetectedRecently = false;      // usado para verificar se há rosto durante o jogo
+    let faceLostTimer = null;               // timer para perder o jogo se rosto sumir
 
     // ---------- ÁUDIO ----------
     function initAudio() {
@@ -174,12 +181,8 @@
         loadingInProgress = true;
         startBtn.disabled = true;
         progressFill.style.width = '0%';
-
         try {
-            // Caminho para a pasta onde estão os 4 arquivos
             const modelPath = './models/face-api/';
-            
-            // Simular progresso (face-api.js não tem callback nativo)
             let fakeProgress = 0;
             const interval = setInterval(() => {
                 if (fakeProgress < 90) {
@@ -187,53 +190,76 @@
                     progressFill.style.width = fakeProgress + '%';
                 }
             }, 200);
-            
             await faceapi.nets.tinyFaceDetector.loadFromUri(modelPath);
             await faceapi.nets.faceLandmark68Net.loadFromUri(modelPath);
-            
             clearInterval(interval);
             progressFill.style.width = '100%';
             setTimeout(() => progressFill.style.width = '0%', 800);
-            
             modelsLoaded = true;
             statusSpan.innerHTML = t('iaSuccess');
             startBtn.disabled = false;
             startBtn.innerText = t('startBtn');
             loadingInProgress = false;
-            
-            // Iniciar loop de detecção
             requestAnimationFrame(detectionLoop);
         } catch (err) {
-            console.error("Erro ao carregar modelos face-api:", err);
+            console.error("Erro ao carregar modelos:", err);
             statusSpan.innerHTML = t('iaError');
             loadingInProgress = false;
             showReloadButton();
         }
     }
 
-    // ---------- DETECÇÃO DE PISCADA COM FACE-API.JS ----------
+    // ---------- DETECÇÃO DE PISCADA + VERIFICAÇÃO DE ROSTO ----------
+    let lastFaceDetectionTime = 0;
     async function detectionLoop() {
-        if (!modelsLoaded || !gameRunning || blinkDetected) {
+        if (!modelsLoaded) {
             requestAnimationFrame(detectionLoop);
             return;
         }
         try {
             const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
                 .withFaceLandmarks();
-            if (detections.length > 0) {
-                const landmarks = detections[0].landmarks;
-                // Índices dos olhos no modelo 68 pontos: olho esquerdo (36-41), olho direito (42-47)
-                const leftEye = landmarks.getLeftEye(); // array de 6 pontos
-                const rightEye = landmarks.getRightEye();
-                
-                // Calcular EAR (Eye Aspect Ratio)
-                const leftEAR = calculateEAR(leftEye);
-                const rightEAR = calculateEAR(rightEye);
-                const avgEAR = (leftEAR + rightEAR) / 2;
-                
-                if (avgEAR < 0.2) { // piscou
-                    blinkDetected = true;
-                    endGame();
+            const hasFace = detections.length > 0;
+            const now = performance.now();
+            if (hasFace) {
+                faceWarning.style.display = 'none';
+                lastFaceDetectionTime = now;
+                // Se o jogo está ativo, processa piscada
+                if (gameRunning && !blinkDetected) {
+                    const landmarks = detections[0].landmarks;
+                    const leftEye = landmarks.getLeftEye();
+                    const rightEye = landmarks.getRightEye();
+                    if (leftEye && rightEye && leftEye.length === 6 && rightEye.length === 6) {
+                        const leftEAR = calculateEAR(leftEye);
+                        const rightEAR = calculateEAR(rightEye);
+                        const avgEAR = (leftEAR + rightEAR) / 2;
+                        if (avgEAR < 0.2) {
+                            blinkDetected = true;
+                            endGame();
+                        }
+                    }
+                }
+            } else {
+                // Rosto não detectado: mostra aviso se não estiver em jogo
+                if (!gameRunning && !countdownActive && !gameActive) {
+                    faceWarning.style.display = 'block';
+                    faceWarning.innerText = t('noFaceWarning');
+                }
+                // Durante o jogo, se ficar sem rosto por mais de 1 segundo, perde
+                if (gameRunning && !blinkDetected) {
+                    if (now - lastFaceDetectionTime > 1000) {
+                        // Perdeu o rosto: jogo termina com mensagem especial
+                        if (gameRunning) {
+                            gameRunning = false;
+                            gameActive = false;
+                            stopDisturbances();
+                            cancelAnimationFrame(animFrame);
+                            statusSpan.innerHTML = t('faceLost');
+                            startBtn.innerText = t('playAgain');
+                            startBtn.disabled = false;
+                            blinkDetected = true; // evita múltiplos fins
+                        }
+                    }
                 }
             }
         } catch(e) { console.warn(e); }
@@ -241,8 +267,6 @@
     }
 
     function calculateEAR(eyePoints) {
-        // eyePoints: 6 pontos (p0, p1, p2, p3, p4, p5) no sentido horário
-        // Fórmula: (||p1-p5|| + ||p2-p4||) / (2 * ||p0-p3||)
         const p0 = eyePoints[0], p1 = eyePoints[1], p2 = eyePoints[2], p3 = eyePoints[3], p4 = eyePoints[4], p5 = eyePoints[5];
         const vertical1 = Math.hypot(p1.x - p5.x, p1.y - p5.y);
         const vertical2 = Math.hypot(p2.x - p4.x, p2.y - p4.y);
@@ -280,6 +304,11 @@
 
     function startCountdown() {
         if (gameActive) return;
+        // Antes de iniciar, verifica se há rosto detectado recentemente
+        if (!faceDetectedRecently && (performance.now() - lastFaceDetectionTime > 500)) {
+            statusSpan.innerHTML = t('noFaceWarning');
+            return;
+        }
         gameActive = true;
         countdownActive = true;
         startBtn.disabled = true;
@@ -315,12 +344,21 @@
         statusSpan.innerHTML = t('gameActive');
         startBtn.innerText = t('playing');
         startBtn.disabled = true;
+        faceWarning.style.display = 'none';
+        lastFaceDetectionTime = performance.now(); // reseta contagem de perda de rosto
     }
 
     function onStartClick() {
         if (gameRunning || countdownActive || loadingInProgress) return;
         if (!modelsLoaded) {
             statusSpan.innerHTML = t('iaError');
+            return;
+        }
+        // Verifica se há rosto agora
+        if (performance.now() - lastFaceDetectionTime > 500) {
+            statusSpan.innerHTML = t('noFaceWarning');
+            faceWarning.style.display = 'block';
+            faceWarning.innerText = t('noFaceWarning');
             return;
         }
         initAudio();
@@ -347,6 +385,10 @@
             else statusSpan.innerHTML = t('cameraWaiting');
         } else if (gameRunning) statusSpan.innerHTML = t('gameActive');
         else if (countdownActive) statusSpan.innerHTML = t('countdownPrepare');
+        // Atualiza texto do aviso se ele estiver visível
+        if (faceWarning.style.display === 'block') {
+            faceWarning.innerText = t('noFaceWarning');
+        }
     });
 </script>
 </body>
